@@ -80,7 +80,9 @@
     "showing": "Showing",
     "page": "Page",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "errors": {
     "invalidCredentials": "Invalid email or password",
@@ -296,7 +298,9 @@
     "termsUrl": "Terms of Service URL",
     "advancedSettings": "Advanced",
     "customCSS": "Custom CSS",
-    "switchPreview": "Switch Preview"
+    "switchPreview": "Switch Preview",
+    "embedScript": "Embed Script",
+    "embedScriptHelper": "Copy this script and paste it into your website's HTML to embed the chatbot widget."
   },
   "users": {
     "title": "Users",
