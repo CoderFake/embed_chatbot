@@ -10,7 +10,7 @@ import { ToastContainer } from "@/components/ui/Toast";
 import { BotActions } from "@/components/bots/BotActions";
 import { DisplayConfigEditor } from "@/components/bots/DisplayConfigEditor";
 import { ProviderConfigEditor } from "@/components/bots/ProviderConfigEditor";
-import { ArrowLeft, Save, Palette, Settings, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, Palette, Settings, Plus, X, Copy, Check } from "lucide-react";
 
 interface ApiKey {
   key: string;
@@ -73,6 +73,7 @@ export default function BotDetailPage() {
     assessment_questions: [] as string[],
   });
   const [questionInput, setQuestionInput] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const fetchBot = useCallback(async (id: string) => {
     try {
@@ -123,6 +124,21 @@ export default function BotDetailPage() {
       ...formData,
       assessment_questions: formData.assessment_questions.filter((_, i) => i !== index),
     });
+  };
+
+  const handleCopyScript = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18000';
+    const scriptCode = `<script defer="" src="${apiUrl}/widget/js" data-bot-id="${bot?.id}" id="live-widget-script-1"></script>`;
+
+    try {
+      await navigator.clipboard.writeText(scriptCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success(t("common.copied") || "Copied to clipboard!");
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error(t("common.error") || "Failed to copy");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,6 +247,39 @@ export default function BotDetailPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Embed Script Section */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">{t("bots.embedScript") || "Embed Script"}</h2>
+          <button
+            type="button"
+            onClick={handleCopyScript}
+            className="px-3 py-2 hover:bg-gray-100 rounded-lg border border-gray-300 flex items-center gap-2 transition-colors"
+            title={t("common.copy") || "Copy to clipboard"}
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600">{t("common.copied") || "Copied!"}</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span className="text-sm">{t("common.copy") || "Copy"}</span>
+              </>
+            )}
+          </button>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <code className="text-sm text-gray-800 break-all">
+            {`<script defer="" src="${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18000'}/widget/js" data-bot-id="${bot.id}" id="live-widget-script-1"></script>`}
+          </code>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {t("bots.embedScriptHelper") || "Copy this script and paste it into your website's HTML to embed the chatbot widget."}
+        </p>
       </div>
 
       {/* Form */}

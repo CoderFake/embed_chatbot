@@ -80,7 +80,9 @@
     "showing": "Hiển thị",
     "page": "Trang",
     "previous": "Trước",
-    "next": "Tiếp"
+    "next": "Tiếp",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép"
   },
   "errors": {
     "invalidCredentials": "Email hoặc mật khẩu không đúng",
@@ -296,7 +298,9 @@
     "termsUrl": "Link Điều Khoản Dịch Vụ",
     "advancedSettings": "Nâng Cao",
     "customCSS": "CSS Tùy Chỉnh",
-    "switchPreview": "Đổi Vị Trí Xem Trước"
+    "switchPreview": "Đổi Vị Trí Xem Trước",
+    "embedScript": "Script Nhúng Bot",
+    "embedScriptHelper": "Sao chép đoạn script này và dán vào HTML của website để nhúng chatbot widget."
   },
   "users": {
     "title": "Người Dùng",
