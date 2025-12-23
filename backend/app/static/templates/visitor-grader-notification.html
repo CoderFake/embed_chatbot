@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cảnh báo khách hàng tiềm năng</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2 px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .hot-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            padding: 20px 40px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+        .score {
+            font-size: 64px;
+            line-height: 1;
+        }
+        .category {
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin: 20px 0 10px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #34495e;
+            font-size: 20px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        .info-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+        .info-section p {
+            margin: 8px 0;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+            padding-left: 5px;
+        }
+        .intent-signals li {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        .key-interests li {
+            color: #3498db;
+        }
+        .recommended-actions li {
+            color: #27ae60;
+            font-weight: 500;
+        }
+        .reasoning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            flex: 1;
+            margin: 0 5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="font-size: 48px; margin-bottom: 10px;">🔥</div>
+            <h1 style="margin: 0;">Cảnh báo khách hàng tiềm năng!</h1>
+            <p style="color: #7f8c8d; margin: 10px 0 0;">Đã phát hiện một khách hàng có tiềm năng cao</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div class="hot-badge">
+                <div class="score">{{ score }}</div>
+                <div class="category">{{ category }}</div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <p><span class="info-label">Chủ sở hữu Bot:</span> {{ owner_name }}</p>
+            <p><span class="info-label">Tên Bot:</span> {{ bot_name }}</p>
+            <p><span class="info-label">Thời gian đánh giá:</span> {{ graded_at }}</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value">{{ conversation_count }}</div>
+                <div class="stat-label">Cuộc trò chuyện</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ engagement_level }}</div>
+                <div class="stat-label">Mức độ tương tác</div>
+            </div>
+        </div>
+
+        {% if intent_signals %}
+        <h2>🎯 Tín hiệu mua hàng</h2>
+        <ul class="intent-signals">
+            {% for signal in intent_signals %}
+            <li>{{ signal }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if key_interests %}
+        <h2>💡 Quan tâm chính</h2>
+        <ul class="key-interests">
+            {% for interest in key_interests %}
+            <li>{{ interest }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if recommended_actions %}
+        <h2>✅ Hành động được đề xuất</h2>
+        <ul class="recommended-actions">
+            {% for action in recommended_actions %}
+            <li>{{ action }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if reasoning %}
+        <h2>🤔 Phân tích AI</h2>
+        <div class="reasoning">
+            <p style="margin: 0;">{{ reasoning }}</p>
+        </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ visitor_profile_url }}" class="cta-button">
+                Xem hồ sơ khách hàng →
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>Đây là thông báo tự động từ hệ thống chấm điểm khách hàng tiềm năng AI của bạn.</p>
+            <p style="margin-top: 5px; font-size: 12px;">
+                Được hỗ trợ bởi AI · {{ bot_name }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

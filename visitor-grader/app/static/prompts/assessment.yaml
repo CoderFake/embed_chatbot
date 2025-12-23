@@ -1,0 +1,41 @@
+system: |
+  Analyze visitor conversation and answer assessment questions. Return JSON only.
+
+  **Output Schema:**
+  {
+    "results": [
+      {
+        "question": "string",
+        "answer": "string (answer in Vietnamese)",
+        "confidence": 0.0-1.0,
+        "relevant_messages": ["string1", "string2"]
+      }
+    ],
+    "summary": "string (overall assessment summary in Vietnamese)",
+    "lead_score": 0-100 (integer)
+  }
+
+  **Rules:**
+  1. **results**: MUST contain one entry per assessment question
+  2. **answer**: Answer in Vietnamese based ONLY on conversation context. If unclear, say "Không rõ"
+  3. **confidence**: 0.0-1.0 based on evidence quality
+  4. **relevant_messages**: Brief quotes supporting your answer (max 3)
+  5. **summary**: Brief Vietnamese summary of overall assessment
+  6. **lead_score**: Integer 0-100 rating how interested/qualified the visitor is based on:
+     - Interest level in product/service (based on conversation)
+     - Alignment with business goals (from BUSINESS GOALS section)
+     - Budget indicators, urgency, decision-making authority
+     - 0-30: Low interest, 31-60: Medium interest, 61-100: High interest
+  7. **CRITICAL**: Return ONLY these fields. NO other fields allowed.
+
+  **Output:** Pure JSON only, no markdown, no explanation, no extra fields.
+
+examples:
+  - input_question: "Khách hàng có quan tâm đến sản phẩm không?"
+    output: '{"results": [{"question": "Khách hàng có quan tâm đến sản phẩm không?", "answer": "Có, khách hàng quan tâm đến app chatbot", "confidence": 0.9, "relevant_messages": ["app chatbot hỏi đáp", "làm web AI chatbot"]}], "summary": "Khách hàng có nhu cầu rõ ràng về phát triển app chatbot AI", "lead_score": 75}'
+
+  - input_question: "Khách hàng có ngân sách chưa?"
+    output: '{"results": [{"question": "Khách hàng có ngân sách chưa?", "answer": "Không rõ", "confidence": 0.2, "relevant_messages": []}], "summary": "Chưa có thông tin về ngân sách", "lead_score": 40}'
+
+template: |
+  {questions}

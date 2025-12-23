@@ -1,0 +1,582 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: embed_chatbot_database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chatbot_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chatbot_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: embed_chatbot_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-16379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chatbot_network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: embed_chatbot_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - chatbot_network
+
+  minio:
+    image: minio/minio:latest
+    container_name: embed_chatbot_minio
+    restart: unless-stopped
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chatbot_network
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: embed_chatbot_etcd
+    restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chatbot_network
+
+  milvus:
+    image: milvusdb/milvus:v2.6.0
+    container_name: embed_chatbot_milvus
+    restart: unless-stopped
+    ports:
+      - "${MILVUS_PORT:-19532}:19530"
+      - "19091:9091"
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - milvus_data:/var/lib/milvus
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9091/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chatbot_network
+    command: milvus run standalone
+
+  crawl4ai:
+    image: unclecode/crawl4ai:latest
+    container_name: embed_chatbot_crawl4ai
+    restart: unless-stopped
+    ports:
+      - "${CRAWL4AI_PORT:-11235}:11235"
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-your-secret-token}
+    volumes:
+      - crawl4ai_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - chatbot_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: embed_chatbot_backend
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-18000}:8000"
+    environment:
+      # Application
+      ENV: ${ENV:-dev}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      DOCS_USERNAME: ${DOCS_USERNAME}
+      DOCS_PASSWORD: ${DOCS_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-chatbot_salt_key}
+      
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_INTERNAL_HOST:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${POSTGRES_DB:-chatbot_db}
+      DB_ECHO: ${DB_ECHO:-false}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-40}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-3600}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-50}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      
+      # Cache TTL
+      CACHE_DEFAULT_TTL: ${CACHE_DEFAULT_TTL:-3600}
+      CACHE_USER_TTL: ${CACHE_USER_TTL:-3600}
+      CACHE_BOT_TTL: ${CACHE_BOT_TTL:-3600}
+      CACHE_DOCUMENT_TTL: ${CACHE_DOCUMENT_TTL:-1800}
+      CACHE_VISITOR_TTL: ${CACHE_VISITOR_TTL:-1800}
+      CACHE_PROVIDER_TTL: ${CACHE_PROVIDER_TTL:-7200}
+      CACHE_MODEL_TTL: ${CACHE_MODEL_TTL:-7200}
+      CACHE_BOT_CONFIG_TTL: ${CACHE_BOT_CONFIG_TTL:-3600}
+      CACHE_ALLOWED_ORIGINS_TTL: ${CACHE_ALLOWED_ORIGINS_TTL:-3600}
+      CACHE_ANALYTICS_OVERVIEW_TTL: ${CACHE_ANALYTICS_OVERVIEW_TTL:-300}
+      CACHE_ANALYTICS_BOT_TTL: ${CACHE_ANALYTICS_BOT_TTL:-300}
+      CACHE_LIST_TTL: ${CACHE_LIST_TTL:-600}
+      CACHE_BLACKLIST_TTL: ${CACHE_BLACKLIST_TTL:-86400}
+      CACHE_RATE_LIMIT_TTL: ${CACHE_RATE_LIMIT_TTL:-60}
+      
+      # RabbitMQ
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-file_processing_queue}
+      
+      # Webhook Secret
+      BACKEND_WEBHOOK_SECRET: ${BACKEND_WEBHOOK_SECRET}
+      
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-chatbot-documents}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://mac-minio.hoangdieuit.io.vn}
+      MINIO_SECURE: "false"
+      
+      # JWT
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-secret-key-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      WIDGET_TOKEN_EXPIRE_HOURS: ${WIDGET_TOKEN_EXPIRE_HOURS:-1}
+      INVITE_TOKEN_EXPIRE_DAYS: ${INVITE_TOKEN_EXPIRE_DAYS:-7}
+      
+      # Password & Encryption
+      PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-8}
+      PASSWORD_RESET_EXPIRE_HOURS: ${PASSWORD_RESET_EXPIRE_HOURS:-1}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      
+      # Root User (Initial Setup)
+      ROOT_EMAIL: ${ROOT_EMAIL:-admin@example.com}
+      ROOT_PASSWORD: ${ROOT_PASSWORD:-changeme}
+      
+      # Rate Limiting
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      RATE_LIMIT_WIDGET_PER_MINUTE: ${RATE_LIMIT_WIDGET_PER_MINUTE:-20}
+      RATE_LIMIT_IP_PER_MINUTE: ${RATE_LIMIT_IP_PER_MINUTE:-100}
+      
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      CORS_ALLOW_METHODS: ${CORS_ALLOW_METHODS:-*}
+      CORS_ALLOW_HEADERS: ${CORS_ALLOW_HEADERS:-*}
+      
+      # Email (Optional)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS: ${SMTP_TLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Chatbot Platform}
+      EMAIL_TEMPLATES_DIR: ${EMAIL_TEMPLATES_DIR:-app/static/templates}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      
+      # Background Tasks
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      JOB_TIMEOUT: ${JOB_TIMEOUT:-3600}
+      WORKER_COUNT: ${WORKER_COUNT:-2}
+      JOB_QUEUE_TIMEOUT: ${JOB_QUEUE_TIMEOUT:-5}
+      JOB_DATA_TTL: ${JOB_DATA_TTL:-86400}
+      
+      # Monitoring
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      ENABLE_METRICS: ${ENABLE_METRICS:-false}
+      
+      # Gunicorn (for prod/stg)
+      WORKERS: ${WORKERS:-4}
+      PORT: 8000
+      MAX_REQUESTS: ${MAX_REQUESTS:-1000}
+      MAX_REQUESTS_JITTER: ${MAX_REQUESTS_JITTER:-100}
+      TIMEOUT: ${TIMEOUT:-120}
+      GRACEFUL_TIMEOUT: ${GRACEFUL_TIMEOUT:-60}
+      KEEP_ALIVE: ${KEEP_ALIVE:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/uploads:/app/uploads
+      - shared_uploads:/tmp/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chatbot_network
+
+  chat-worker:
+    build:
+      context: ./chat-worker
+      dockerfile: Dockerfile
+    container_name: embed_chatbot_chat_worker
+    restart: unless-stopped
+    environment:
+      # Application
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      ENV: ${ENV:-dev}
+      SECRET_KEY: ${SECRET_KEY}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-chatbot_salt_key}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_INTERNAL_HOST:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${POSTGRES_DB:-chatbot_db}}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/${REDIS_DB:-0}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CHAT_QUEUE_NAME: ${CHAT_QUEUE_NAME:-chat_processing_queue}
+      RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-20}
+      RERANK_MODEL: ${RERANK_MODEL:-BAAI/bge-reranker-base}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      MAX_CONCURRENT_CHAT_TASKS: ${MAX_CONCURRENT_CHAT_TASKS:-10}
+      
+      # Milvus
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_USER: ${MILVUS_USER:-}
+      MILVUS_PASSWORD: ${MILVUS_PASSWORD:-}
+      MILVUS_VECTOR_DIM: ${MILVUS_VECTOR_DIM:-512}
+      
+      # Backend API
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      BACKEND_WEBHOOK_SECRET: ${BACKEND_WEBHOOK_SECRET}
+    volumes:
+      - ./chat-worker/app:/app/app
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - chatbot_network
+
+  visitor-grader:
+    build:
+      context: ./visitor-grader
+      dockerfile: Dockerfile
+    container_name: embed_chatbot_visitor_grader
+    restart: unless-stopped
+    environment:
+      # Application
+      ENV: ${ENV:-dev}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      LOG_LEVEL: ${VISITOR_GRADER_LOG_LEVEL:-INFO}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      
+      # Database (read-only access to get bot provider config)
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_INTERNAL_HOST:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${POSTGRES_DB:-chatbot_db}
+      
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/${REDIS_DB:-0}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-50}
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-chatbot_salt_key}
+      
+      # RabbitMQ
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      VISITOR_GRADING_QUEUE: ${VISITOR_GRADING_QUEUE:-visitor_grading_queue}
+      RABBITMQ_PREFETCH_COUNT: ${VISITOR_GRADER_PREFETCH_COUNT:-1}
+      RABBITMQ_RECONNECT_DELAY: ${VISITOR_GRADER_RECONNECT_DELAY:-5}
+      
+      # Milvus
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_USER: ${MILVUS_USER:-}
+      MILVUS_PASSWORD: ${MILVUS_PASSWORD:-}
+      MILVUS_VECTOR_DIM: ${MILVUS_VECTOR_DIM:-512}
+      
+      # Embedding Model
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-BAAI/bge-m3}
+      EMBEDDING_DEVICE: ${VISITOR_GRADER_EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BATCH_SIZE: ${VISITOR_GRADER_EMBEDDING_BATCH_SIZE:-32}
+      
+      # Retrieval Configuration
+      RETRIEVAL_TOP_K: ${VISITOR_GRADER_RETRIEVAL_TOP_K:-20}
+      RERANK_TOP_K: ${VISITOR_GRADER_RERANK_TOP_K:-5}
+      RERANK_MODEL: ${RERANK_MODEL:-BAAI/bge-reranker-base}
+      
+      # Progress Tracking
+      PROGRESS_UPDATE_INTERVAL: ${VISITOR_GRADER_PROGRESS_UPDATE_INTERVAL:-2.0}
+      PROGRESS_MIN_DELTA: ${VISITOR_GRADER_PROGRESS_MIN_DELTA:-5.0}
+      
+      # Webhook Configuration
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      BACKEND_WEBHOOK_SECRET: ${BACKEND_WEBHOOK_SECRET}
+      WEBHOOK_TIMEOUT: ${VISITOR_GRADER_WEBHOOK_TIMEOUT:-30}
+      WEBHOOK_MAX_RETRIES: ${VISITOR_GRADER_WEBHOOK_MAX_RETRIES:-3}
+      
+      # Lead Scoring Thresholds
+      HOT_LEAD_THRESHOLD: ${HOT_LEAD_THRESHOLD:-70}
+      WARM_LEAD_THRESHOLD: ${WARM_LEAD_THRESHOLD:-40}
+      
+      # Output Language
+      GRADING_OUTPUT_LANGUAGE: ${GRADING_OUTPUT_LANGUAGE:-vietnamese}
+      
+      # Email Configuration
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS: ${SMTP_TLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Chatbot Platform}
+      SALES_TEAM_EMAIL: ${SALES_TEAM_EMAIL:-}
+    volumes:
+      - ./visitor-grader/app:/app/app
+      - huggingface_cache:/root/.cache/huggingface
+      - visitor_grader_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chatbot_network
+
+  file-server:
+    build:
+      context: ./file-server
+      dockerfile: Dockerfile
+    container_name: embed_chatbot_file_server
+    restart: unless-stopped
+    environment:
+      # Application
+      ENV: ${ENV:-dev}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      
+      # RabbitMQ (internal)
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-file_processing_queue}
+      RABBITMQ_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-1}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-50}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-5}
+      
+      # Milvus
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      MILVUS_USER: ${MILVUS_USER:-}
+      MILVUS_PASSWORD: ${MILVUS_PASSWORD:-}
+      MILVUS_VECTOR_DIM: ${MILVUS_VECTOR_DIM:-512}
+      
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_SECURE: "false"
+      
+      # Backend webhook
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      BACKEND_WEBHOOK_SECRET: ${BACKEND_WEBHOOK_SECRET}
+      
+      # Worker configuration
+      WORKER_POOL_SIZE: ${FILE_SERVER_WORKER_POOL_SIZE:-4}
+      WORKER_MAX_RETRIES: ${FILE_SERVER_WORKER_MAX_RETRIES:-3}
+      WORKER_RETRY_DELAY: ${FILE_SERVER_WORKER_RETRY_DELAY:-5}
+      
+      # Batch processing
+      MINIO_BATCH_SIZE: ${FILE_SERVER_MINIO_BATCH_SIZE:-100}
+      MILVUS_BATCH_SIZE: ${FILE_SERVER_MILVUS_BATCH_SIZE:-1000}
+      
+      # Progress configuration
+      PROGRESS_MIN_DELTA: ${FILE_SERVER_PROGRESS_MIN_DELTA:-5.0}
+      PROGRESS_MIN_INTERVAL: ${FILE_SERVER_PROGRESS_MIN_INTERVAL:-3.0}
+      PROGRESS_STATE_TTL: ${FILE_SERVER_PROGRESS_STATE_TTL:-3600}
+      
+      # Embedding model
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-BAAI/bge-m3}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      
+      # Text processing 
+      CHUNK_SIZE: ${CHUNK_SIZE:-512}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-128}
+      
+      # Crawling configuration
+      MAX_CRAWL_PAGES: ${MAX_CRAWL_PAGES:-100}
+      CRAWL_MAX_DEPTH: ${CRAWL_MAX_DEPTH:-3}
+      CRAWL_MAX_CONCURRENT: ${CRAWL_MAX_CONCURRENT:-5}
+      CRAWL_TIMEOUT: ${CRAWL_TIMEOUT:-30}
+      CRAWL_PROGRESS_INTERVAL: ${CRAWL_PROGRESS_INTERVAL:-5}
+      CRAWL_BATCH_SIZE: ${CRAWL_BATCH_SIZE:-10}
+      
+      # Crawl4AI API configuration
+      CRAWL4AI_URL: http://crawl4ai:11235
+      CRAWL4AI_API_TOKEN: ${CRAWL4AI_API_TOKEN:-your-secret-token}
+      CRAWL4AI_TIMEOUT: ${CRAWL4AI_TIMEOUT:-60}
+      CRAWL4AI_WORD_COUNT_THRESHOLD: ${CRAWL4AI_WORD_COUNT_THRESHOLD:-10}
+      
+      # Directories (internal)
+      TEMP_UPLOAD_DIR: /tmp/uploads
+      TEMP_CRAWL_DIR: /tmp/crawl
+      
+      # Logging
+      LOG_LEVEL: ${FILE_SERVER_LOG_LEVEL:-INFO}
+    volumes:
+      - ./file-server/app:/app/app
+      - ./file-server/main.py:/app/main.py
+      - shared_uploads:/tmp/uploads
+      - file_server_crawl:/tmp/crawl
+      - file_server_logs:/app/logs
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      crawl4ai:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - chatbot_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  etcd_data:
+    driver: local
+  milvus_data:
+    driver: local
+  crawl4ai_data:
+    driver: local
+  shared_uploads:
+    driver: local
+  file_server_crawl:
+    driver: local
+  file_server_logs:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  huggingface_cache:
+    driver: local
+  visitor_grader_logs:
+    driver: local
+
+networks:
+  chatbot_network:
+    driver: bridge

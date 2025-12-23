@@ -1,0 +1,49 @@
+langgraph==0.6.7
+pyyaml
+pydantic==2.10.3
+pydantic-settings==2.6.1
+redis==5.0.4
+aio-pika==9.4.3
+pytz==2024.1
+
+# PyTorch
+# torch==2.9.0+cpu
+
+# FastAPI
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+psutil==5.9.8
+gunicorn==21.2.0
+
+# Database
+sqlalchemy==2.0.31
+asyncpg==0.29.0
+
+# ML/AI - Embeddings & Reranking
+FlagEmbedding==1.2.11
+peft==0.17.1
+sentence-transformers==2.6.0
+
+# Vector Database
+pymilvus>=2.6.0
+
+# LLM Integration
+langchain==0.3.19
+langgraph==0.6.7
+langchain-community==0.3.18
+langchain-huggingface==0.1.2
+langchain-text-splitters==0.3.6
+langchain-google-genai==2.0.5
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Utilities
+pytz==2024.1
+cryptography==42.0.5
+
+# LLM Providers
+openai==1.54.3
+google-generativeai==0.8.3
+httpx==0.27.0

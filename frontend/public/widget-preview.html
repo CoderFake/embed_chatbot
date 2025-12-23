@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widget Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #ffffff;
+      height: 100vh;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="mock-widget"></div>
+
+  <script>
+    let config = {
+      position: { horizontal: 'right', vertical: 'bottom', offset_x: 20, offset_y: 20 },
+      size: { width: 400, height: 600 },
+      header: { title: 'Chat Support', subtitle: 'Online', show_online_status: true, show_close_button: true },
+      colors: {
+        header: { background: '#4F46E5', text: '#FFFFFF', subtitle_text: '#E0E7FF', icon: '#FFFFFF' },
+        button: { launcher_background: '#4F46E5', launcher_icon: '#FFFFFF', send_button: '#4F46E5' },
+        message: { user_background: '#4F46E5', user_text: '#FFFFFF', bot_background: '#F3F4F6', bot_text: '#1F2937', timestamp: '#6B7280' },
+        input: { background: '#FFFFFF', text: '#1F2937', placeholder: '#9CA3AF', border: '#E5E7EB', border_focus: '#4F46E5' },
+        background: { main: '#FFFFFF', chat_area: '#F9FAFB' },
+        shadow: 'rgba(0, 0, 0, 0.2)'
+      },
+      button: { size: 60 },
+      welcome_message: { enabled: true, message: 'Xin chào! Tôi có thể giúp gì cho bạn?' },
+      input: { placeholder: 'Nhập tin nhắn...', max_length: 1000 },
+      behavior: { show_typing_indicator: true }
+    };
+
+    let isOpen = true;
+
+    function initWidget() {
+      const container = document.getElementById('mock-widget');
+      container.innerHTML = `
+        <style id="widget-dynamic-styles"></style>
+        
+        <div class="mock-window" id="mock-window">
+          <div class="mock-header" id="mock-header">
+            <div class="mock-header-info">
+              <div class="mock-avatar" id="mock-avatar"></div>
+              <div>
+                <div style="font-weight: 600; display: flex; align-items: center;">
+                  <span id="header-title">Chat Support</span>
+                  <span class="mock-online-status" id="online-status"></span>
+                </div>
+                <div id="header-subtitle" style="font-size: 12px; opacity: 0.9;">Online</div>
+              </div>
+            </div>
+            <div class="mock-header-actions">
+              <button class="mock-new-chat-btn" id="mock-new-chat">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5V19M5 12H19"/>
+                </svg>
+              </button>
+              <button class="mock-close-btn" id="mock-close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6L18 18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="mock-messages" id="mock-messages">
+            <div class="mock-message assistant" id="welcome-msg">
+              <div class="mock-message-content">
+                <div id="welcome-text">Xin chào! Tôi có thể giúp gì cho bạn?</div>
+                <div class="mock-message-time">10:30</div>
+              </div>
+            </div>
+            <div class="mock-message user">
+              <div class="mock-message-content">
+                <div>Tôi cần hỗ trợ về sản phẩm</div>
+                <div class="mock-message-time">10:31</div>
+              </div>
+            </div>
+            <div class="mock-message assistant">
+              <div class="mock-message-content">
+                <div>Tất nhiên! Tôi sẵn sàng hỗ trợ bạn. Bạn cần tư vấn về sản phẩm nào?</div>
+                <div class="mock-message-time">10:31</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mock-input-container" id="mock-input-container">
+            <input 
+              class="mock-input" 
+              id="mock-input"
+              type="text" 
+              placeholder="Nhập tin nhắn..."
+              maxlength="1000"
+            />
+            <button class="mock-send-btn" id="mock-send">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="mock-footer" id="mock-footer">
+            <div class="mock-branding" id="mock-branding"></div>
+            <div class="mock-links" id="mock-links"></div>
+          </div>
+        </div>
+        
+        <button class="mock-toggle-btn" id="mock-toggle">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+      `;
+
+      // Add event listeners once
+      document.getElementById('mock-toggle').addEventListener('click', () => {
+        isOpen = !isOpen;
+        document.getElementById('mock-window').style.display = isOpen ? 'flex' : 'none';
+      });
+
+      document.getElementById('mock-close').addEventListener('click', () => {
+        isOpen = false;
+        document.getElementById('mock-window').style.display = 'none';
+      });
+
+      // Initial style update
+      updateStyles();
+    }
+
+    // Update only styles, no re-render
+    function updateStyles() {
+      const position = config.position || {};
+      const size = config.size || {};
+      const colors = config.colors || {};
+      const headerColors = colors.header || {};
+      const buttonColors = colors.button || {};
+      const messageColors = colors.message || {};
+      const inputColors = colors.input || {};
+      const bgColors = colors.background || {};
+      const buttonConfig = config.button || {};
+      const headerConfig = config.header || {};
+      const welcomeMsg = config.welcome_message || {};
+      const inputConfig = config.input || {};
+
+      // Update dynamic CSS
+      const styleEl = document.getElementById('widget-dynamic-styles');
+      styleEl.textContent = `
+        #mock-widget {
+          position: fixed;
+          ${position.vertical === 'top' ? 'top' : 'bottom'}: ${position.vertical === 'top' ? position.offset_y || 20 : position.offset_y || 20}px;
+          ${position.horizontal === 'left' ? 'left' : 'right'}: ${position.horizontal === 'left' ? position.offset_x || 20 : position.offset_x || 20}px;
+          z-index: 9999;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        .mock-toggle-btn {
+          width: ${buttonConfig.size || 60}px;
+          height: ${buttonConfig.size || 60}px;
+          border-radius: 50%;
+          background: ${buttonColors.launcher_background || '#4F46E5'};
+          color: ${buttonColors.launcher_icon || '#FFFFFF'};
+          border: none;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s;
+        }
+        
+        .mock-toggle-btn:hover {
+          transform: scale(1.05);
+        }
+        
+        .mock-window {
+          position: fixed;
+          ${position.vertical === 'top' ? 'top' : 'bottom'}: ${position.vertical === 'top' ? (position.offset_y || 20) + (buttonConfig.size || 60) + 10 : (position.offset_y || 20) + (buttonConfig.size || 60) + 10}px;
+          ${position.horizontal === 'left' ? 'left' : 'right'}: ${position.horizontal === 'left' ? position.offset_x || 20 : position.offset_x || 20}px;
+          width: ${size.width || 400}px;
+          height: ${size.height || 600}px;
+          background: ${bgColors.main || '#FFFFFF'};
+          border-radius: 12px;
+          box-shadow: 0 10px 40px ${colors.shadow || 'rgba(0,0,0,0.2)'};
+          display: ${isOpen ? 'flex' : 'none'};
+          flex-direction: column;
+          overflow: hidden;
+          transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .mock-header {
+          background: ${headerColors.background || '#4F46E5'};
+          color: ${headerColors.text || '#FFFFFF'};
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          ${headerColors.border ? `border-bottom: 1px solid ${headerColors.border};` : ''}
+        }
+        
+        #header-subtitle {
+          color: ${headerColors.subtitle_text || '#E0E7FF'};
+        }
+        
+        .mock-header-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+        }
+        
+        .mock-header-actions {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .mock-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: white;
+          flex-shrink: 0;
+        }
+        
+        .mock-new-chat-btn,
+        .mock-close-btn {
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: ${headerColors.icon || '#FFFFFF'};
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+          flex-shrink: 0;
+        }
+        
+        .mock-close-btn {
+          display: ${headerConfig.show_close_button === false ? 'none' : 'flex'};
+        }
+        
+        .mock-new-chat-btn:hover,
+        .mock-close-btn:hover {
+          background: rgba(255,255,255,0.3);
+        }
+        
+        .mock-messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+          background: ${bgColors.chat_area || '#F9FAFB'};
+        }
+        
+        .mock-message {
+          margin-bottom: 16px;
+          display: flex;
+          gap: 8px;
+        }
+        
+        .mock-message.user {
+          justify-content: flex-end;
+        }
+        
+        .mock-message-content {
+          max-width: 75%;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        
+        .mock-message.user .mock-message-content {
+          background: ${messageColors.user_background || '#4F46E5'};
+          color: ${messageColors.user_text || '#FFFFFF'};
+        }
+        
+        .mock-message.assistant .mock-message-content {
+          background: ${messageColors.bot_background || '#F3F4F6'};
+          color: ${messageColors.bot_text || '#1F2937'};
+        }
+        
+        .mock-message-time {
+          font-size: 11px;
+          margin-top: 4px;
+          opacity: 0.7;
+          color: ${messageColors.timestamp || '#6B7280'};
+        }
+        
+        .mock-input-container {
+          padding: 16px;
+          background: ${bgColors.main || '#FFFFFF'};
+          border-top: 1px solid ${colors.divider || '#E5E7EB'};
+          display: flex;
+          gap: 8px;
+        }
+        
+        .mock-input {
+          flex: 1;
+          padding: 12px 16px;
+          border: 1px solid ${inputColors.border || '#E5E7EB'};
+          border-radius: 24px;
+          outline: none;
+          font-size: 14px;
+          background: ${inputColors.background || '#FFFFFF'};
+          color: ${inputColors.text || '#1F2937'};
+        }
+        
+        .mock-input::placeholder {
+          color: ${inputColors.placeholder || '#9CA3AF'};
+        }
+        
+        .mock-input:focus {
+          border-color: ${inputColors.border_focus || '#4F46E5'};
+        }
+        
+        .mock-send-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: ${buttonColors.send_button || '#4F46E5'};
+          color: white;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.2s;
+        }
+        
+        .mock-send-btn:hover {
+          transform: scale(1.05);
+        }
+        
+        .mock-online-status {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10B981;
+          margin-left: 4px;
+          display: ${headerConfig.show_online_status !== false ? 'inline-block' : 'none'};
+        }
+        
+        .mock-footer {
+          padding: 12px 16px;
+          background: ${bgColors.main || '#FFFFFF'};
+          border-top: 1px solid ${colors.divider || '#E5E7EB'};
+          display: ${config.branding?.show_powered_by !== false || config.branding?.privacy_policy_url || config.branding?.terms_url ? 'block' : 'none'};
+          font-size: 12px;
+          text-align: center;
+          color: #6B7280;
+        }
+        
+        .mock-branding {
+          display: ${config.branding?.show_powered_by !== false ? 'flex' : 'none'};
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-bottom: ${config.branding?.privacy_policy_url || config.branding?.terms_url ? '8px' : '0'};
+        }
+        
+        .mock-branding img {
+          height: 16px;
+          width: auto;
+        }
+        
+        .mock-links {
+          display: ${config.branding?.privacy_policy_url || config.branding?.terms_url ? 'flex' : 'none'};
+          justify-content: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        
+        .mock-links a {
+          color: ${headerColors.background || '#4F46E5'};
+          text-decoration: none;
+          transition: opacity 0.2s;
+        }
+        
+        .mock-links a:hover {
+          opacity: 0.7;
+          text-decoration: underline;
+        }
+      `;
+
+      // Update text content only
+      const headerTitle = document.getElementById('header-title');
+      const headerSubtitle = document.getElementById('header-subtitle');
+      const welcomeText = document.getElementById('welcome-text');
+      const mockInput = document.getElementById('mock-input');
+      const welcomeMsgDiv = document.getElementById('welcome-msg');
+      const mockBranding = document.getElementById('mock-branding');
+      const mockLinks = document.getElementById('mock-links');
+      const mockAvatar = document.getElementById('mock-avatar');
+
+      if (headerTitle) headerTitle.textContent = headerConfig.title || 'Chat Support';
+      if (headerSubtitle) headerSubtitle.textContent = headerConfig.subtitle || 'Online';
+      
+      if (mockAvatar) {
+        if (headerConfig.avatar_url) {
+          mockAvatar.innerHTML = `<img src="${headerConfig.avatar_url}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+          mockAvatar.innerHTML = '';
+        }
+      }
+      if (welcomeText && welcomeMsg.enabled !== false) {
+        welcomeText.textContent = welcomeMsg.message || 'Hi! How can I help you today?';
+      }
+      if (mockInput) {
+        mockInput.placeholder = inputConfig.placeholder || 'Type your message...';
+        mockInput.maxLength = inputConfig.max_length || 1000;
+      }
+      if (welcomeMsgDiv) {
+        welcomeMsgDiv.style.display = welcomeMsg.enabled !== false ? 'flex' : 'none';
+      }
+
+      // Update branding
+      const brandingConfig = config.branding || {};
+      if (mockBranding) {
+        let brandingHTML = '';
+        if (brandingConfig.show_powered_by !== false) {
+          brandingHTML = '<span>Powered by</span>';
+          if (brandingConfig.company_logo_url) {
+            brandingHTML += `<img src="${brandingConfig.company_logo_url}" alt="${brandingConfig.company_name || 'Company'}">`;
+          } else if (brandingConfig.company_name) {
+            brandingHTML += `<strong>${brandingConfig.company_name}</strong>`;
+          }
+        }
+        mockBranding.innerHTML = brandingHTML;
+      }
+
+      // Update links
+      if (mockLinks) {
+        let linksHTML = '';
+        if (brandingConfig.privacy_policy_url) {
+          linksHTML += `<a href="${brandingConfig.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>`;
+        }
+        if (brandingConfig.terms_url) {
+          if (linksHTML) linksHTML += '<span>•</span>';
+          linksHTML += `<a href="${brandingConfig.terms_url}" target="_blank" rel="noopener">Terms of Service</a>`;
+        }
+        mockLinks.innerHTML = linksHTML;
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'UPDATE_CONFIG') {
+        config = event.data.config;
+        updateStyles();
+        
+        handleAutoOpen();
+      }
+    });
+
+    function handleAutoOpen() {
+      const behaviorConfig = config.behavior || {};
+      
+      if (behaviorConfig.auto_open === true && !isOpen) {
+        const delaySeconds = behaviorConfig.auto_open_delay || 3;
+        const delayMs = delaySeconds * 1000;
+        
+        console.log(`Widget will auto-open in ${delaySeconds} seconds`);
+        
+        // Auto-open after delay
+        setTimeout(() => {
+          if (!isOpen) {
+            isOpen = true;
+            const mockWindow = document.getElementById('mock-window');
+            if (mockWindow) {
+              mockWindow.style.display = 'flex';
+              console.log('Widget auto-opened');
+            }
+          }
+        }, delayMs);
+      }
+    }
+
+    initWidget();
+    
+    setTimeout(() => {
+      handleAutoOpen();
+    }, 100);
+  </script>
+</body>
+</html>

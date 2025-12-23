@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Lời mời tham gia! - {{ app_name }}{% endblock %}
+
+{% block content %}
+<h2>🎉 Bạn được mời tham gia {{ app_name }}!</h2>
+
+<p>Xin chào,</p>
+
+<p><strong>{{ inviter_name }}</strong> đã mời bạn tham gia <strong>{{ app_name }}</strong> với vai trò <strong>{{ role }}</strong>.</p>
+
+<p>{{ app_name }} là một nền tảng chatbot mạnh mẽ giúp bạn tạo, quản lý và triển khai chatbot thông minh cho website của bạn.</p>
+
+<div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+    <p><strong>🔑 Thông tin đăng nhập của bạn:</strong></p>
+    <p><strong>Email:</strong> {{ email }}</p>
+    <p><strong>Mật khẩu tạm thời:</strong> <code style="background: #f8f9fa; padding: 4px 8px; border-radius: 3px; font-family: monospace;">{{ password }}</code></p>
+</div>
+
+<p><strong>⚠️ QUAN TRỌNG:</strong> Đây là mật khẩu tạm thời. Bạn sẽ được yêu cầu thay đổi mật khẩu sau lần đăng nhập đầu tiên để bảo mật.</p>
+
+<div style="text-align: center;">
+    <a href="{{ accept_url }}" class="button">Chấp nhận lời mời</a>
+</div>
+
+<div class="info-box">
+    <p><strong>👤 Vai trò của bạn:</strong> {{ role }}</p>
+    <p><strong>⏰ Lời mời hết hạn sau:</strong> {{ expire_days }} ngày kể từ bây giờ</p>
+</div>
+
+<p><strong>Tiếp theo là gì?</strong></p>
+
+<ol style="color: #666; line-height: 1.8;">
+    <li>Nhấp vào nút "Chấp nhận lời mời" ở trên</li>
+    <li>Bạn sẽ được chuyển đến trang đăng nhập</li>
+    <li>Nhập email và mật khẩu tạm thời ở trên</li>
+    <li>Bạn sẽ được yêu cầu đặt mật khẩu mới an toàn</li>
+    <li>Hoàn thành hồ sơ của bạn và bắt đầu khám phá {{ app_name }}</li>
+</ol>
+
+<p>Nếu nút không hoạt động, hãy sao chép và dán liên kết này vào trình duyệt:</p>
+<p style="word-break: break-all; color: #00c7f2; font-size: 14px;">{{ accept_url }}</p>
+
+<div class="divider"></div>
+
+<p style="color: #dc3545; font-size: 14px;">
+    <strong>🔒 Mẹo bảo mật:</strong>
+</p>
+<ul style="color: #666; line-height: 1.8; font-size: 14px;">
+    <li>Không chia sẻ mật khẩu tạm thời với bất kỳ ai</li>
+    <li>Liên kết mời chỉ có thể sử dụng một lần</li>
+    <li>Thay đổi mật khẩu ngay sau lần đăng nhập đầu tiên</li>
+    <li>Nếu bạn không mong đợi lời mời này, vui lòng bỏ qua email này</li>
+</ul>
+{% endblock %}

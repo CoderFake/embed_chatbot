@@ -1,0 +1,102 @@
+system: |
+  Analyze user query and return JSON only.
+
+  **Output Schema:**
+  {
+    "language": "vi|en|ja|kr",
+    "confidence": 0.0-1.0,
+    "intent": "chitchat|question",
+    "needs_retrieval": true|false,
+    "rewritten_query": "string",
+    "followup_action": "string",
+    "visitor_info": {"name": null, "email": null, "phone": null, "address": null} or null
+  }
+
+  **Rules:**
+  1. **intent**:
+     - chitchat: greetings/thanks/goodbye/asking about BOT identity (tên bot, bot là ai, mày là ai)
+     - question: asking about product/service/knowledge OR asking about company information (địa chỉ, số điện thoại, email, thông tin liên hệ, trụ sở, văn phòng)
+  2. **needs_retrieval**:
+     - false: ONLY greetings, thanks, goodbye, asking about bot identity, user providing personal info
+     - true: ALL questions about products/services/company info/pricing/features/people/address/phone/email - ALWAYS retrieve from knowledge base
+     - **CRITICAL**: Questions about company contact (địa chỉ/address, số điện thoại/phone, email, liên hệ/contact) MUST have needs_retrieval=true
+  3. **rewritten_query**: CRITICAL - Expand unclear/incomplete queries using conversation history
+     - If query is vague ("tại sao", "chi tiết", "thế còn", "như thế nào", "còn gì", "còn ai", "còn không"): Look at last 2-3 assistant messages to understand TOPIC user is asking about
+     - **Identify the TOPIC first** (product/service, person/role, feature, pricing, etc.) from assistant's previous answer
+     - Example 1: User: "web cá độ có làm k" → Bot: "không thể hỗ trợ" → User: "tại sao" → Rewrite: "tại sao không thể hỗ trợ phát triển web cá độ"
+     - Example 2: User: "CEO là ai" → Bot: "CEO là To Quang Duy" → User: "còn ai nữa không" → Rewrite: "còn những lãnh đạo/nhân sự chủ chốt nào khác của Newwave Solutions"
+     - Example 3: Bot: "Có ERP, CRM..." → User: "còn gì nữa không" → Rewrite: "còn những sản phẩm/dịch vụ nào khác"
+     - If query is complete and clear: return original
+  4. **followup_action**: Next action based on context
+     - User asked product/service + missing contact → "Hỏi [field] để [reason]"
+     - User provided info OR has 3+ fields → "Confirm: [info]"
+     - User asks about their info → "Hiển thị thông tin đã thu thập"
+     - Simple question → ""
+  5. **visitor_info**: Extract name/email/phone/address if provided. Must be object or null.
+
+  **Output:** Pure JSON only, no markdown, no explanation.
+
+examples:
+  - input: "Xin chào"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "Xin chào", "followup_action": "", "visitor_info": null}'
+
+  - input: "mày tên gì"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "mày tên gì", "followup_action": "", "visitor_info": null}'
+
+  - input: "bot là ai"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "bot là ai", "followup_action": "", "visitor_info": null}'
+
+  - input: "tên tôi là Minh"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "tên tôi là Minh", "followup_action": "Confirm: Tên Minh", "visitor_info": {"name": "Minh", "email": null, "phone": null, "address": null}}'
+
+  - input: "Sai rồi, số điện thoại đổi thành 0987654322"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "Số điện thoại đổi thành 0987654322", "followup_action": "Confirm: Số điện thoại 0987654322", "visitor_info": {"name": "Minh", "email": null, "phone": "0987654322", "address": null}}'
+
+  - input: "email của t là minh1234@gmail.com"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "email của t là minh1234@gmail.com", "followup_action": "Confirm: Email minh1234@gmail.com", "visitor_info": {"name": "Minh", "email": "minh1234@gmail.com", "phone": "0987654322", "address": null}}'
+
+  - input: "Cho t xin thông tin làm web?"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "Cho t xin thông tin làm web?", "followup_action": "Xin thông tin còn thiếu về user để tiện tư vấn", "visitor_info": {"name": "Minh", "email": "minh1234@gmail.com", "phone": "0987654322", "address": "123 Main St, City, Country"}}'
+
+  - input: "địa chỉ t là 123 Main St, City, Country"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "chitchat", "needs_retrieval": false, "rewritten_query": "địa chỉ t là 123 Main St, City, Country", "followup_action": "Confirm: Địa chỉ 123 Main St, City, Country", "visitor_info": {"name": "Minh", "email": "minh1234@gmail.com", "phone": "0987654322", "address": "123 Main St, City, Country"}}'
+
+  - input: "Web bán hàng có gì ?"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "Web bán hàng có gì?", "followup_action": "Xin thông tin còn thiếu về user để tiện tư vấn", "visitor_info": {"name": "Minh", "email": "minh1234@gmail.com", "phone": "0987654322", "address": "123 Main St, City, Country"}}'
+
+  - input: "chi tiết"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "Chi tiết về web bán hàng", "followup_action": "Hỏi xem cần gì nữa không, để tư vấn tốt hơn, nếu chưa đủ 4 thông tin thì thu thập", "visitor_info": {"name": "Minh", "email": "minh1234@gmail.com", "phone": "0987654322", "address": "123 Main St, City, Country"}}'
+
+  - input: "tại sao"
+    context: "Previous: User asked about web cá độ, bot said cannot support"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "tại sao không thể hỗ trợ phát triển web cá độ", "followup_action": "", "visitor_info": null}'
+
+  - input: "như thế nào"
+    context: "Previous: User asked about làm web, bot explained process"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "quy trình làm web như thế nào", "followup_action": "", "visitor_info": null}'
+
+  - input: "còn ai nữa không"
+    context: "Previous: User asked about CEO, bot said CEO is To Quang Duy"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "còn những lãnh đạo hoặc nhân sự chủ chốt nào khác của Newwave Solutions", "followup_action": "", "visitor_info": null}'
+  
+  - input: "cho t xin link"
+    context: "Previous: User asked about Python web, bot said uses Django and Flask"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "cho tôi xin link dịch vụ phát triển web Python", "followup_action": "", "visitor_info": null}'
+
+  - input: "địa chỉ công ty bạn ở đâu"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "địa chỉ công ty ở đâu", "followup_action": "", "visitor_info": null}'
+
+  - input: "số điện thoại liên hệ của bạn là gì"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "số điện thoại liên hệ của công ty là gì", "followup_action": "", "visitor_info": null}'
+
+  - input: "cho tôi xin email liên hệ"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "cho tôi xin email liên hệ của công ty", "followup_action": "", "visitor_info": null}'
+
+  - input: "thông tin liên hệ của công ty"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "thông tin liên hệ của công ty", "followup_action": "", "visitor_info": null}'
+
+template: |
+  History: {conversation_history}
+  Profile: {visitor_profile}
+  Memory: {long_term_memory}
+  Query: {query}

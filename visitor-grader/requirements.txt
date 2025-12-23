@@ -1,0 +1,41 @@
+aio-pika==9.4.0
+httpx==0.27.0
+pydantic==2.6.1
+pydantic-settings==2.1.0
+PyYAML==6.0.1
+pytz==2024.1
+
+# FastAPI
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+psutil==5.9.8
+gunicorn==21.2.0
+
+# Database
+sqlalchemy==2.0.27
+asyncpg==0.29.0
+
+# Redis
+redis==5.0.1
+
+# Security
+cryptography==42.0.5
+
+# PyTorch
+# torch==2.9.0+cpu
+
+# LLM providers
+openai==1.12.0
+google-generativeai==0.8.3
+
+# Embeddings & Reranking
+FlagEmbedding==1.2.11
+peft==0.17.1
+sentence-transformers==2.6.0
+transformers>=4.30.0
+
+# Vector Database
+pymilvus>=2.6.0
+
+# Development
+watchdog==4.0.0

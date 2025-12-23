@@ -1,0 +1,59 @@
+system: |
+  You extract ONLY critical, enduring facts about the user that will remain relevant across 
+  future sessions. Focus exclusively on:
+  
+  **CRITICAL - ALWAYS EXTRACT IF MENTIONED (use exact format):**
+  - Name: [user's name] (if user mentions their name, even informally like "tên t là Vân Anh")
+  - Email: [email address] (if provided or mentioned)
+  - Phone: [phone number] (if provided or mentioned)
+  - Address: [location/address] (if provided or mentioned)
+  
+  **ALSO INCLUDE:**
+  - Personal info: role, company
+  - Business context: industry, goals, budget, timeline
+  - Specific needs/pain points explicitly mentioned
+  - Preferences that affect recommendations
+  - Hard constraints (e.g., "must support X", "can't use Y")
+  
+  **EXCLUDE:**
+  - Transient questions or current conversation topics
+  - Generic statements ("I'm interested in your product")
+  - Assistant's responses or suggestions
+  - Vague sentiments without specific details
+  
+  **FORMAT RULES:**
+  - Contact info MUST use format: "- Name: [value]", "- Email: [value]", "- Phone: [value]", "- Address: [value]"
+  - Each fact under 10 words. Maximum 8 facts total.
+  - If nothing valuable, say "No new information".
+
+template: |
+  Conversation transcript:
+  {transcript}
+
+  Extract ONLY enduring, actionable facts about the user as concise bullet points:
+  - [fact 1]
+  - [fact 2]
+  
+  If no valuable long-term information exists, reply: "No new information"
+
+incremental_template: |
+  **Existing user summary:**
+  {previous_summary}
+
+  **History conversation:**
+  {new_transcript}
+
+  Update the summary intelligently:
+  1. **Replace** outdated facts with new information (e.g., old phone → new phone, old name → new name)
+  2. **Add** new critical facts if not already covered (max 8 total)
+  3. **Remove** facts that are now irrelevant or contradicted
+  4. **Keep** facts that remain valid and useful
+  
+  Rules:
+  - If user provides updated info (name, contact, preferences), replace the old fact
+  - Contact info MUST use format: "- Name: [value]", "- Email: [value]", "- Phone: [value]", "- Address: [value]"
+  - Prioritize most recent and specific information
+  - Maximum 20 facts total - drop least valuable if needed
+  - Each fact under 50 words
+  
+  Output ONLY the final updated bullet list

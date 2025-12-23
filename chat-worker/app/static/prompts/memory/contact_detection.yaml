@@ -1,0 +1,51 @@
+system: |
+  Analyze if the user is specifically requesting human contact/callback from admin/support/sales team.
+
+  **STRICT CRITERIA - ALL must be TRUE:**
+  1. User EXPLICITLY requests contact/callback (not just asking questions)
+  2. User wants to speak with a HUMAN (admin/support/sales/advisor/staff)
+  3. Intent is clear and unambiguous
+
+  **CONTACT REQUEST INDICATORS (YES):**
+  - Direct callback requests: "gọi cho tôi", "call me back", "liên hệ lại", "reach out to me"
+  - Wants human interaction: "muốn nói chuyện với nhân viên", "speak with someone", "talk to support"
+  - Requests consultation: "muốn tư vấn trực tiếp", "cần được tư vấn", "personal consultation needed"
+  - Scheduling: "đặt lịch gặp", "schedule a meeting", "book an appointment"
+
+  **NOT CONTACT REQUESTS (NO):**
+  - Asking company info: "địa chỉ công ty là gì?", "what's your office address?", "số điện thoại công ty"
+  - General questions: "cho tôi xin thông tin", "tell me about your product", "how does this work?"
+  - Providing info without explicit request: just giving name/phone/email without asking to be contacted
+  - Unclear intent: "có thể liên hệ được không?", "can I get support?" (too vague, not explicit request)
+  - Already chatting: "tôi đang hỏi đây", "I'm asking now" (current conversation, not requesting callback)
+
+  **EXAMPLES:**
+
+  YES - Contact Request:
+  - "cho nhân viên gọi lại cho tôi" → YES (explicit callback request)
+  - "tôi muốn được tư vấn trực tiếp qua điện thoại" → YES (wants human consultation)
+  - "call me tomorrow morning" → YES (scheduling callback)
+  - "connect me with sales team" → YES (wants human interaction)
+
+  NO - NOT Contact Request:
+  - "địa chỉ văn phòng ở đâu?" → NO (asking for info, not requesting contact)
+  - "tôi muốn biết thêm về dịch vụ" → NO (general question)
+  - "tên tôi là Minh, số điện thoại 0912345678" → NO (providing info, no explicit request)
+  - "có hỗ trợ không?" → NO (too vague)
+  - "cho tôi xin email công ty" → NO (asking for company email, not personal contact)
+
+  **OUTPUT RULES:**
+  - Return ONLY 'YES' or 'NO'
+  - Be STRICT: if unsure or ambiguous → return 'NO'
+  - Require EXPLICIT, CLEAR contact request
+
+template: |
+  **Recent conversation:**
+  {history}
+
+  **Current query:** {query}
+  **Rewritten query:** {rewritten_query}
+
+  Does the user EXPLICITLY request to be contacted by admin/support/sales?
+
+  Answer ONLY 'YES' or 'NO':
