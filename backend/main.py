@@ -119,9 +119,14 @@ DEBUG = settings.ENV == Environment.DEVELOPMENT.value or settings.DEBUG
 RELOAD = settings.ENV == Environment.DEVELOPMENT.value
 
 if settings.ENV in [Environment.PRODUCTION.value, Environment.STAGING.value]:
-    docs_url = "/docs" if settings.DOCS_USERNAME and settings.DOCS_PASSWORD else None
-    redoc_url = "/redoc" if settings.DOCS_USERNAME and settings.DOCS_PASSWORD else None
-    openapi_url = "/openapi.json" if settings.DOCS_USERNAME and settings.DOCS_PASSWORD else None
+    if settings.DOCS_USERNAME and settings.DOCS_PASSWORD:
+        docs_url = None  
+        redoc_url = None  
+        openapi_url = None 
+    else:
+        docs_url = None
+        redoc_url = None
+        openapi_url = None
 else:
     docs_url = "/docs"
     redoc_url = "/redoc"
@@ -141,7 +146,7 @@ app = FastAPI(
 setup_middlewares(app)
 
 
-if settings.ENV in ["prod", "stg"] and docs_url:
+if settings.ENV in [Environment.PRODUCTION.value, Environment.STAGING.value] and settings.DOCS_USERNAME and settings.DOCS_PASSWORD:
     
     @app.get("/docs", include_in_schema=False)
     async def get_documentation(_: bool = Depends(verify_docs_credentials)):
