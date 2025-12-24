@@ -12,7 +12,7 @@ case "${ENV}" in
 		echo "Starting in PRODUCTION mode with Gunicorn..."
 		exec gunicorn main:app \
 			--bind=0.0.0.0:${PORT:-8001} \
-			--workers=${WORKERS:-4} \
+			--workers=1 \
 			--worker-class=uvicorn.workers.UvicornWorker \
 			--max-requests=${MAX_REQUESTS:-1000} \
 			--max-requests-jitter=${MAX_REQUESTS_JITTER:-100} \
@@ -28,7 +28,7 @@ case "${ENV}" in
 		echo "Starting in STAGING mode with Gunicorn..."
 		exec gunicorn main:app \
 			--bind=0.0.0.0:${PORT:-8001} \
-			--workers=${WORKERS:-2} \
+			--workers=1 \
 			--worker-class=uvicorn.workers.UvicornWorker \
 			--max-requests=${MAX_REQUESTS:-500} \
 			--max-requests-jitter=${MAX_REQUESTS_JITTER:-50} \
