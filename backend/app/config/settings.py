@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     REDIS_MAX_CONNECTIONS: int = 50
     REDIS_SOCKET_TIMEOUT: int = 5
     REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
-    REDIS_URL: Optional[str] = None
+    REDIS_URL: Optional[str] = "redis://redis:6379/0"
     
     # Cache TTL Configuration (seconds)
     CACHE_DEFAULT_TTL: int = 3600  # 1 hour
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_WIDGET_PER_MINUTE: int = 20
-    RATE_LIMIT_IP_PER_MINUTE: int = 100
+    RATE_LIMIT_IP_PER_MINUTE: int = 300
     
     # RabbitMQ Configuration
     RABBITMQ_URL: str = "amqp://guest:guest@rabbitmq:5672/"
@@ -128,6 +128,9 @@ class Settings(BaseSettings):
     EMAIL_TEMPLATES_DIR: str = "app/static/templates"
     FRONTEND_URL: str = "http://gg-frontend.hoangdieuit.io.vn"
     BACKEND_URL: Optional[str] = "https://gg-backend.hoangdieuit.io.vn"
+    
+    # Visitor Grading & Worker Configuration
+    VISITOR_HIGH_SCORE_THRESHOLD: int = 50
 
     # Document Upload/Crawl
     UPLOAD_DIR: str = "/tmp/uploads"
