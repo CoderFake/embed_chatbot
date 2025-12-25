@@ -25,7 +25,7 @@ from app.models.base import Base  # noqa: E402
 from app.models import (  # noqa: E402, F401
     User, Invite, Blacklist,
     Provider, Model,
-    Bot, ProviderConfig, AllowedOrigin,
+    Bot, ProviderConfig, AllowedOrigin, BotWorker,
     Document,
     Visitor, ChatSession, ChatMessage,
     Notification,
