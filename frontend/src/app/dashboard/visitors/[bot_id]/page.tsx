@@ -19,7 +19,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Settings,
 } from "lucide-react";
+import { WorkerSettingsModal } from "@/components/visitors/WorkerSettingsModal";
 
 interface Visitor {
   id: string;
@@ -36,6 +38,7 @@ interface Visitor {
       assessed_at?: string;
     };
   } | null;
+  is_new: boolean;
   created_at: string;
 }
 
@@ -89,11 +92,11 @@ export default function BotVisitorsPage() {
   const [loadingChat, setLoadingChat] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [showWorkerSettings, setShowWorkerSettings] = useState(false);
+  const [loadingWorkerSettings, setLoadingWorkerSettings] = useState(false);
   const [assessmentStates, setAssessmentStates] = useState<Map<string, AssessmentProgress>>(new Map());
 
   const eventSourcesRef = useRef<Map<string, EventSource>>(new Map());
-
-  const [newlyAssessed, setNewlyAssessed] = useState<Set<string>>(new Set());
 
   // Pagination & Sorting
   const [page, setPage] = useState(1);
@@ -129,17 +132,6 @@ export default function BotVisitorsPage() {
   }, [botId, page, sortBy]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(`newly_assessed_${botId}`);
-    if (stored) {
-      try {
-        setNewlyAssessed(new Set(JSON.parse(stored)));
-      } catch (e) {
-        console.error('Failed to parse newly assessed:', e);
-      }
-    }
-  }, [botId]);
-
-  useEffect(() => {
     if (!botId) return;
     fetchVisitors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,7 +143,7 @@ export default function BotVisitorsPage() {
     const fetchActiveAssessments = async () => {
       try {
         const response = await apiClient.get('/admin/visitors/active-assessments/bulk');
-        const activeAssessments = response.data; 
+        const activeAssessments = response.data;
         Object.entries(activeAssessments).forEach(([visitorId, taskId]) => {
           const visitor = visitors.find(v => v.id === visitorId);
           if (!visitor) return;
@@ -296,12 +288,6 @@ export default function BotVisitorsPage() {
                 newMap.delete(visitorId);
                 return newMap;
               });
-              // Mark as newly assessed
-              setNewlyAssessed(prev => {
-                const newSet = new Set(prev).add(visitorId);
-                localStorage.setItem(`newly_assessed_${botId}`, JSON.stringify([...newSet]));
-                return newSet;
-              });
               fetchVisitors();
             } else if (data.status === "FAILED") {
               toast.error(data.message || t("analytics.assessmentFailed"));
@@ -333,16 +319,29 @@ export default function BotVisitorsPage() {
     }
   };
 
-  const handleViewAssessment = (visitor: Visitor) => {
+  const handleOpenWorkerSettings = async () => {
+    setLoadingWorkerSettings(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setShowWorkerSettings(true);
+    } catch (error) {
+      console.error("Failed to open worker settings:", error);
+      toast.error(t("common.error"));
+    } finally {
+      setLoadingWorkerSettings(false);
+    }
+  };
+
+  const handleViewAssessment = async (visitor: Visitor) => {
     setSelectedVisitor(visitor);
     setShowAssessmentModal(true);
-    // Remove NEW badge when viewed
-    setNewlyAssessed(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(visitor.id);
-      localStorage.setItem(`newly_assessed_${botId}`, JSON.stringify([...newSet]));
-      return newSet;
-    });
+
+    try {
+      await apiClient.get(`/admin/visitors/${visitor.id}`);
+      await fetchVisitors();
+    } catch (error) {
+      console.error("Failed to mark visitor as viewed:", error);
+    }
   };
 
   const handleTriggerAssessment = async (visitorId: string) => {
@@ -389,12 +388,6 @@ export default function BotVisitorsPage() {
               const newMap = new Map(prev);
               newMap.delete(visitorId);
               return newMap;
-            });
-            // Mark as newly assessed
-            setNewlyAssessed(prev => {
-              const newSet = new Set(prev).add(visitorId);
-              localStorage.setItem(`newly_assessed_${botId}`, JSON.stringify([...newSet]));
-              return newSet;
             });
             fetchVisitors();
           } else if (data.status === "FAILED") {
@@ -461,19 +454,38 @@ export default function BotVisitorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => router.push("/dashboard/visitors")}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {bot?.name || t("common.loading")}
-          </h1>
-          <p className="text-gray-600 mt-1">{t("visitors.viewVisitors")}</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/dashboard/visitors")}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {bot?.name || t("common.loading")}
+            </h1>
+            <p className="text-gray-600 mt-1">{t("visitors.viewVisitors")}</p>
+          </div>
         </div>
+        <button
+          onClick={handleOpenWorkerSettings}
+          disabled={loadingWorkerSettings}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loadingWorkerSettings ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>{t("common.loading")}</span>
+            </>
+          ) : (
+            <>
+              <Settings className="w-4 h-4" />
+              <span>{t("workers.settingsModal")}</span>
+            </>
+          )}
+        </button>
       </div>
 
       <div className="card">
@@ -487,7 +499,7 @@ export default function BotVisitorsPage() {
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value);
-                setPage(1); // Reset to page 1 when changing sort
+                setPage(1);
               }}
               className="input-field py-1.5"
             >
@@ -576,7 +588,7 @@ export default function BotVisitorsPage() {
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               <span>{t("visitors.viewAssessment")}</span>
-                              {newlyAssessed.has(visitor.id) && (
+                              {visitor.is_new && (
                                 <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-red-500 text-white rounded-full animate-pulse">
                                   NEW
                                 </span>
@@ -828,6 +840,13 @@ export default function BotVisitorsPage() {
           </div>
         </div>
       )}
+
+      {/* Worker Settings Modal */}
+      <WorkerSettingsModal
+        botId={botId}
+        isOpen={showWorkerSettings}
+        onClose={() => setShowWorkerSettings(false)}
+      />
 
       <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
     </div>

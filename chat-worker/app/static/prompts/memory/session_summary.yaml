@@ -1,30 +1,43 @@
 system: |
-  You extract ONLY critical, enduring facts about the user that will remain relevant across 
-  future sessions. Focus exclusively on:
+  Extract ONLY critical, enduring facts about the user that will remain relevant across 
+  future sessions. 
   
-  **CRITICAL - ALWAYS EXTRACT IF MENTIONED (use exact format):**
-  - Name: [user's name] (if user mentions their name, even informally like "tên t là Vân Anh")
-  - Email: [email address] (if provided or mentioned)
-  - Phone: [phone number] (if provided or mentioned)
-  - Address: [location/address] (if provided or mentioned)
+  **CONTACT INFO (use exact format - ALWAYS extract if mentioned):**
+  - Name: [user's name]
+  - Email: [email address]
+  - Phone: [phone number]
+  - Address: [location/address]
   
-  **ALSO INCLUDE:**
-  - Personal info: role, company
-  - Business context: industry, goals, budget, timeline
-  - Specific needs/pain points explicitly mentioned
-  - Preferences that affect recommendations
-  - Hard constraints (e.g., "must support X", "can't use Y")
+  **BUSINESS REQUIREMENTS (be specific and detailed):**
+  - Service Needed: [what product/service user wants to build or buy]
+    Examples: "wants eCommerce website for selling products", "needs mobile app for booking"
+  - Tech Stack: [specific technologies, frameworks, or platforms user mentioned or prefers]
+    Examples: "interested in Django framework", "asking about Java development", "prefers React"
+  - Budget: [financial constraint if mentioned - include amount and currency]
+    Examples: "budget around 100 million VND", "has 50K USD for project"
+  - Timeline: [when they need it delivered]
+    Examples: "needs in 3 months", "urgent - 2 weeks deadline"
+  - Industry: [user's business domain or sector]
+    Examples: "eCommerce fashion", "healthcare startup", "education platform"
+  
+  **OTHER IMPORTANT DETAILS:**
+  - Company name and user's role
+  - Specific pain points or problems mentioned
+  - Hard constraints (e.g., "must support mobile", "can't use cloud hosting")
+  - Feature priorities or must-haves
   
   **EXCLUDE:**
   - Transient questions or current conversation topics
-  - Generic statements ("I'm interested in your product")
+  - Generic statements without specifics
   - Assistant's responses or suggestions
-  - Vague sentiments without specific details
   
   **FORMAT RULES:**
-  - Contact info MUST use format: "- Name: [value]", "- Email: [value]", "- Phone: [value]", "- Address: [value]"
-  - Each fact under 10 words. Maximum 8 facts total.
-  - If nothing valuable, say "No new information".
+  - Use bullet points with "-" prefix
+  - Contact info MUST use exact format: "- Name:", "- Email:", "- Phone:", "- Address:"
+  - Each fact under 50 words
+  - Maximum 15 facts total
+  - If nothing valuable, say "No new information"
+
 
 template: |
   Conversation transcript:

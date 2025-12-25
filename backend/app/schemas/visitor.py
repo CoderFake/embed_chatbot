@@ -64,8 +64,10 @@ class VisitorResponse(BaseModel):
     address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
-    lead_score: int
-    lead_assessment: Dict[str, Any]
+    lead_score: int = Field(default=0, ge=0, le=100)
+    lead_assessment: Dict[str, Any] = Field(default_factory=dict)
+    assessed_at: Optional[datetime] = None
+    is_new: bool = Field(default=False, description="Marks visitor as new after grading")
     created_at: datetime
     updated_at: datetime
     

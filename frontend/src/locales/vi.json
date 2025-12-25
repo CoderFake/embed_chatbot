@@ -508,5 +508,22 @@
     "embedding": "Đang nhúng",
     "completed": "Hoàn thành",
     "failed": "Thất bại"
+  },
+  "workers": {
+    "settingsModal": "Cài đặt Đánh giá",
+    "autoAssessment": "Đánh giá tự động",
+    "autoAssessmentDesc": "Tự động đánh giá cuộc trò chuyện của khách hàng theo lịch",
+    "sendEmail": "Gửi mail khách hàng tiềm năng",
+    "sendEmailDesc": "Gửi thông báo về khách hàng có điểm lead cao",
+    "frequency": "Tần xuất",
+    "frequencyDaily": "Hàng ngày",
+    "frequencyWeekly": "Hàng tuần (Thứ 2)",
+    "frequencyMonthly": "Hàng tháng (Ngày 1)",
+    "frequencyYearly": "Hàng năm (1/1)",
+    "assessmentTime": "Thời gian đánh giá",
+    "emailTime": "Thời gian gửi mail",
+    "save": "Lưu cài đặt",
+    "cancel": "Hủy",
+    "settingsSaved": "Đã lưu cài đặt thành công"
   }
 }

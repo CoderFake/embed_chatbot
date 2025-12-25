@@ -1,15 +1,48 @@
 #!/bin/bash
 set -e
 
-# Display environment info
+cleanup() {
+    echo "========================================="
+    echo "Shutting down gracefully..."
+    echo "========================================="
+    
+    # Kill Celery processes
+    if [ ! -z "$CELERY_WORKER_PID" ]; then
+        echo "Stopping Celery Worker (PID: $CELERY_WORKER_PID)..."
+        kill -TERM $CELERY_WORKER_PID 2>/dev/null || true
+    fi
+    
+    if [ ! -z "$CELERY_BEAT_PID" ]; then
+        echo "Stopping Celery Beat (PID: $CELERY_BEAT_PID)..."
+        kill -TERM $CELERY_BEAT_PID 2>/dev/null || true
+    fi
+    
+    if [ ! -z "$EMAIL_WORKER_PID" ]; then
+        echo "Stopping Email Worker (PID: $EMAIL_WORKER_PID)..."
+        kill -TERM $EMAIL_WORKER_PID 2>/dev/null || true
+    fi
+    
+    wait 2>/dev/null || true
+    
+    echo "Cleaning up Celery Beat schedule..."
+    rm -f /app/celerybeat-schedule /app/celerybeat-schedule.db /app/celerybeat-schedule.dir /app/celerybeat-schedule.dat
+    
+    echo "Cleanup completed"
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT SIGQUIT
+
 echo "========================================="
 echo "Environment: ${ENV:-dev}"
 echo "========================================="
 
-# Ensure upload directory exists with correct permissions
 echo "Setting up upload directory..."
 mkdir -p /tmp/uploads 2>/dev/null || true
 chmod 777 /tmp/uploads 2>/dev/null || true
+
+echo "Cleaning old Celery state..."
+rm -f /app/celerybeat-schedule* 2>/dev/null || true
 
 # Initialize database and create root user
 echo "Initializing database..."
@@ -20,6 +53,18 @@ echo "Starting email worker..."
 python -m app.workers.email_worker &
 EMAIL_WORKER_PID=$!
 echo "Email worker started with PID: $EMAIL_WORKER_PID"
+
+# Start Celery Worker in background
+echo "Starting Celery Worker..."
+celery -A app.workers.bot_worker_scheduler worker --loglevel=info --concurrency=2 &
+CELERY_WORKER_PID=$!
+echo "Celery worker started with PID: $CELERY_WORKER_PID"
+
+# Start Celery Beat in background with DatabaseScheduler
+echo "Starting Celery Beat Scheduler..."
+celery -A app.workers.bot_worker_scheduler beat --scheduler app.workers.bot_worker_scheduler:DatabaseScheduler --loglevel=info &
+CELERY_BEAT_PID=$!
+echo "Celery beat started with PID: $CELERY_BEAT_PID"
 
 echo "========================================="
 echo "Starting application..."

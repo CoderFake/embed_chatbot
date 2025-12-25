@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Danh sách Khách hàng Tiềm năng - {{ app_name }}{% endblock %}
+
+{% block content %}
+<h2>Khách hàng Tiềm năng Mới</h2>
+
+<p>Xin chào,</p>
+
+<p>Hệ thống đánh giá khách hàng đã phát hiện <strong style="color: #00c7f2;">{{ total_count }} khách hàng tiềm năng</strong> mới với điểm số cao trên bot <strong>{{ bot_name }}</strong>.</p>
+
+<div class="info-box">
+    <p><strong>📊 Ngưỡng điểm:</strong> {{ threshold }}+ điểm</p>
+    <p><strong>🎯 Tổng số khách hàng:</strong> {{ total_count }} người</p>
+</div>
+
+<h3 style="color: #333; font-size: 18px; margin: 30px 0 15px;">Danh sách khách hàng</h3>
+
+{% for visitor in visitors %}
+<div style="background: #f8f9fa; border-left: 4px solid #00c7f2; padding: 15px 20px; margin: 15px 0; border-radius: 4px;">
+    <div style="margin-bottom: 12px;">
+        <strong style="color: #333; font-size: 16px;">{{ visitor.name }}</strong>
+        <div style="margin-top: 8px;">
+            <span style="background: linear-gradient(135deg, #00c7f2 0%, #00a0c7 100%); color: white; padding: 3px 10px; border-radius: 10px; font-size: 13px; font-weight: 600;">
+                {{ visitor.lead_score }} điểm
+            </span>
+        </div>
+    </div>
+    <p style="margin: 5px 0; color: #666; font-size: 14px;">
+        <strong>Email:</strong> {{ visitor.email }}<br>
+        <strong>SĐT:</strong> {{ visitor.phone }}<br>
+        {% if visitor.assessed_at %}
+        <strong>Đánh giá lúc:</strong> {{ visitor.assessed_at_formatted }}
+        {% endif %}
+    </p>
+</div>
+{% endfor %}
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ frontend_url }}/dashboard/visitors" class="button">
+        Xem tất cả khách hàng
+    </a>
+</div>
+
+<div class="divider"></div>
+
+<p style="color: #6c757d; font-size: 14px;">
+    <strong>💡 Gợi ý:</strong> Bạn nên liên hệ với những khách hàng này càng sớm càng tốt để tăng tỷ lệ chuyển đổi.
+</p>
+{% endblock %}

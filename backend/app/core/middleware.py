@@ -150,7 +150,14 @@ class WidgetCORSMiddleware(BaseHTTPMiddleware):
         """
         path = request.url.path
         if path.startswith("/api/v1/widget") or path.startswith("/api/v1/chat"):
-
+            
+            if path.startswith("/api/v1/widget/js"):
+                response = await call_next(request)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+                return response
+            
             if request.method == "OPTIONS":
                 origin = get_request_origin(request) or "*"
                 return Response(
@@ -163,6 +170,21 @@ class WidgetCORSMiddleware(BaseHTTPMiddleware):
                         "Access-Control-Max-Age": "86400",
                     }
                 )
+            
+            session_based_paths = [
+                "/api/v1/widget/chat",
+                "/api/v1/widget/init",
+                "/api/v1/chat/stream/",
+                "/api/v1/chat/task/",
+            ]
+            if any(path.startswith(sp) for sp in session_based_paths):
+                response = await call_next(request)
+                origin = get_request_origin(request) or "*"
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+                return response
             
             if settings.SKIP_ORIGIN_CHECK and settings.ENV == Environment.DEVELOPMENT.value:
                 response = await call_next(request)
@@ -183,7 +205,12 @@ class WidgetCORSMiddleware(BaseHTTPMiddleware):
             bot_key = request.query_params.get("bot_key") or request.path_params.get("bot_key")
             bot_id = None
             
-            if path.startswith("/api/v1/chat") and request.method == "POST":
+            import re
+            bot_id_match = re.search(r'/widget/config/([a-f0-9-]{36})', path)
+            if bot_id_match:
+                bot_id = bot_id_match.group(1)
+            
+            if not bot_id and '/chat' in path and request.method == "POST":
                 try:
                     body = await request.body()
                     if body:
