@@ -259,6 +259,8 @@
     "offsetY": "Offset Y",
     "width": "Chiều Rộng",
     "height": "Chiều Cao",
+    "mobileWidth": "Chiều Rộng Mobile",
+    "mobileHeight": "Chiều Cao Mobile",
     "subtitleText": "Màu Phụ Đề",
     "iconColor": "Màu Icon",
     "borderColor": "Màu Viền",
