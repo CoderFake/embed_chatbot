@@ -31,6 +31,7 @@ class Visitor(Base, TimestampMixin):
     lead_score = Column(Integer, default=0, nullable=False)  # 0-100
     lead_assessment = Column(JSONB, default=dict, nullable=False)  # Scoring details
     assessed_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    is_new = Column(Boolean, default=False, nullable=False)  # Marks visitor as new after grading
     
     # Relationships
     sessions = relationship("ChatSession", back_populates="visitor", cascade="all, delete-orphan")

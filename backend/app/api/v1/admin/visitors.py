@@ -65,6 +65,7 @@ async def get_visitor_details(
 ):
     """
     Get visitor details including lead score and grading insights.
+    Automatically marks visitor as viewed (is_new=false) when accessed.
     
     Returns complete visitor information:
     - Basic info (name, email, phone, address)
@@ -90,6 +91,11 @@ async def get_visitor_details(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Visitor not found: {visitor_id}"
         )
+    
+    if visitor.is_new:
+        visitor.is_new = False
+        await db.commit()
+        logger.info(f"Marked visitor {visitor_id} as viewed by admin {current_user.user_id}")
     
     return visitor
 

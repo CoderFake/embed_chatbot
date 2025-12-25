@@ -668,12 +668,11 @@ class VisitorService:
         Returns:
             List of visitors matching criteria, sorted by selected column
         """
-        # Dynamic sorting based on sort_by parameter
         if sort_by == "lead_score":
             stmt = select(Visitor).order_by(desc(Visitor.lead_score), desc(Visitor.created_at))
         elif sort_by == "created_at":
             stmt = select(Visitor).order_by(desc(Visitor.created_at))
-        else:  # assessed_at (default) - recently assessed first, nulls last
+        else:
             stmt = select(Visitor).order_by(
                 desc(Visitor.assessed_at).nullslast(),
                 desc(Visitor.created_at)
@@ -748,6 +747,7 @@ class VisitorService:
         visitor.lead_assessment = current_assessment
         visitor.lead_score = lead_score
         visitor.assessed_at = now()
+        visitor.is_new = True
         
         flag_modified(visitor, "lead_assessment")
         
@@ -825,6 +825,7 @@ class VisitorService:
             
             visitor.lead_score = lead_score
             visitor.lead_category = lead_category
+            visitor.is_new = True
             
             extra_data = dict(visitor.extra_data or {})
             extra_data["lead_scoring"] = scoring_data
