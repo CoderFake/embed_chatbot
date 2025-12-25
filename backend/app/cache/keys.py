@@ -274,3 +274,13 @@ class CacheKeys:
     def invite_password(token: str) -> str:
         """Temporary password storage for invite acceptance (TTL: 7 days)."""
         return f"invite_password:{token}"
+    
+    @staticmethod
+    def bot_workers(bot_id: str) -> str:
+        """Cache key for bot workers list."""
+        return f"bot:{bot_id}:workers"
+    
+    @staticmethod
+    def bot_worker(bot_id: str, schedule_type: str) -> str:
+        """Cache key for specific bot worker."""
+        return f"bot:{bot_id}:worker:{schedule_type}"
