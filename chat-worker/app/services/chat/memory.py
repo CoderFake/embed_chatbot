@@ -89,6 +89,7 @@ class LongTermMemoryService:
                 user_prompt=user_prompt,
             )
             llm_summary = result.get("text", "").strip()
+            logger.debug(f"[MEMORY DEBUG] LLM extracted (with visitor_profile): {llm_summary[:500]}")
             
             if llm_summary and llm_summary.lower() not in ("no new information", "no update needed"):
                 llm_lines = [line for line in llm_summary.split('\n') if line.strip().startswith('-')]
@@ -99,6 +100,8 @@ class LongTermMemoryService:
                         non_contact_lines.append(line)
                 
                 summary_parts.extend(non_contact_lines)
+                logger.debug(f"[MEMORY DEBUG] Added {len(non_contact_lines)} non-contact facts")
+                logger.debug(f"[MEMORY DEBUG] Total summary parts: {len(summary_parts)}")
             
             return '\n'.join(summary_parts) if summary_parts else "No new information"
         
@@ -125,6 +128,7 @@ class LongTermMemoryService:
             user_prompt=user_prompt,
         )
         summary_text = result.get("text", "").strip()
+        logger.debug(f"[MEMORY DEBUG] LLM extracted (no visitor_profile): {summary_text[:500]}")
         return summary_text
 
     async def _ensure_store(self) -> Optional[BaseStore]:
@@ -157,7 +161,6 @@ class LongTermMemoryService:
         Returns:
             True if contact request detected AND is_contact is False, False otherwise
         """
-        # Check session's is_contact state first
         if is_contact:
             logger.info("Session is_contact already True, skipping contact detection")
             return False

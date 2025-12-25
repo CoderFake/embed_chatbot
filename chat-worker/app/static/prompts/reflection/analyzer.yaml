@@ -27,11 +27,16 @@ system: |
      - Example 2: User: "CEO là ai" → Bot: "CEO là To Quang Duy" → User: "còn ai nữa không" → Rewrite: "còn những lãnh đạo/nhân sự chủ chốt nào khác của Newwave Solutions"
      - Example 3: Bot: "Có ERP, CRM..." → User: "còn gì nữa không" → Rewrite: "còn những sản phẩm/dịch vụ nào khác"
      - If query is complete and clear: return original
-  4. **followup_action**: Next action based on context
-     - User asked product/service + missing contact → "Hỏi [field] để [reason]"
-     - User provided info OR has 3+ fields → "Confirm: [info]"
+  4. **followup_action**: Next action based on user intent and collected info
+     **CRITICAL - PROACTIVE CONTACT COLLECTION:**
+     - User shows INTEREST/INTENT in product/service (asking details, wanting more info, pricing, features) AND has <3 fields → "Hỏi [missing_fields] để tư vấn chi tiết hơn"
+     - User asks specific question about product/service AND missing ANY contact field → "Xin [field] để gửi thông tin chi tiết"
+     **CONFIRMATION:**
+     - User just provided new info → "Confirm: [info]"
+     - User has 3+ fields AND asks complex question → "Hỏi xem còn cần gì để hỗ trợ tốt hơn"
+     **OTHER:**
      - User asks about their info → "Hiển thị thông tin đã thu thập"
-     - Simple question → ""
+     - Simple chitchat/company info request → ""
   5. **visitor_info**: Extract name/email/phone/address if provided. Must be object or null.
 
   **Output:** Pure JSON only, no markdown, no explanation.
@@ -76,7 +81,7 @@ examples:
     output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "quy trình làm web như thế nào", "followup_action": "", "visitor_info": null}'
 
   - input: "còn ai nữa không"
-    context: "Previous: User asked about CEO, bot said CEO is To Quang Duy"
+    context: "Previous: User asked about CEO, bot said CEO is X"
     output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "còn những lãnh đạo hoặc nhân sự chủ chốt nào khác của Newwave Solutions", "followup_action": "", "visitor_info": null}'
   
   - input: "cho t xin link"
@@ -94,6 +99,9 @@ examples:
 
   - input: "thông tin liên hệ của công ty"
     output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "thông tin liên hệ của công ty", "followup_action": "", "visitor_info": null}'
+
+  - input: "Tôi muốn biết thêm về dịch vụ phát triển web"
+    output: '{"language": "vi", "confidence": 1.0, "intent": "question", "needs_retrieval": true, "rewritten_query": "Tôi muốn biết thêm về dịch vụ phát triển web", "followup_action": "Hỏi tên và số điện thoại/email để gửi thông tin chi tiết về dịch vụ", "visitor_info": null}'
 
 template: |
   History: {conversation_history}
