@@ -172,3 +172,22 @@ class TimePeriod(str, Enum):
     DAY = "day"
     MONTH = "month"
     YEAR = "year"
+
+
+# ============================================================================
+# Bot Worker Enums
+# ============================================================================
+
+class ScheduleType(str, Enum):
+    """Bot worker schedule enumeration."""
+    CRAWL = "crawl"
+    VISITOR_EMAIL = "visitor_email"
+    GRADING = "grading"
+
+
+class Frequency(str, Enum):
+    """Scheduling frequency options"""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
