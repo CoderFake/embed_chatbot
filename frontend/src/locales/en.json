@@ -513,5 +513,22 @@
     "embedding": "Embedding",
     "completed": "Completed",
     "failed": "Failed"
+  },
+  "workers": {
+    "settingsModal": "Assessment Settings",
+    "autoAssessment": "Auto Assessment",
+    "autoAssessmentDesc": "Automatically assess visitor conversations at scheduled times",
+    "sendEmail": "Send High-Score Visitor Emails",
+    "sendEmailDesc": "Send notifications about visitors with high lead scores",
+    "frequency": "Frequency",
+    "frequencyDaily": "Daily",
+    "frequencyWeekly": "Weekly (Monday)",
+    "frequencyMonthly": "Monthly (1st)",
+    "frequencyYearly": "Yearly (Jan 1)",
+    "assessmentTime": "Assessment Time",
+    "emailTime": "Email Time",
+    "save": "Save Settings",
+    "cancel": "Cancel",
+    "settingsSaved": "Worker settings saved successfully"
   }
 }
