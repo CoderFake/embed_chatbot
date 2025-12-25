@@ -259,6 +259,8 @@
     "offsetY": "Offset Y",
     "width": "Width",
     "height": "Height",
+    "mobileWidth": "Mobile Width",
+    "mobileHeight": "Mobile Height",
     "subtitleText": "Subtitle Color",
     "iconColor": "Icon Color",
     "borderColor": "Border Color",
